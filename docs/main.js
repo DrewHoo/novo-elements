@@ -3751,6 +3751,7 @@ var NovoLabelService = /** @class */ (function () {
         this.pickerError = 'Oops! An error occurred.';
         this.pickerTextFieldEmpty = 'Begin typing to see results.';
         this.pickerEmpty = 'No results to display...';
+        this.tabbedGroupPickerEmpty = 'No results found';
         this.quickNoteError = 'Oops! An error occurred.';
         this.quickNoteEmpty = 'No results to display...';
         this.required = 'Required';
@@ -3930,6 +3931,17 @@ var NovoLabelService = /** @class */ (function () {
     function (total, select) {
         if (select === void 0) { select = false; }
         return select ? "Select all " + total + " records." : "De-select remaining " + total + " records.";
+    };
+    /**
+     * @param {?} tabLabelPlural
+     * @return {?}
+     */
+    NovoLabelService.prototype.tabbedGroupClearSuggestion = /**
+     * @param {?} tabLabelPlural
+     * @return {?}
+     */
+    function (tabLabelPlural) {
+        return "Clear your search to see all " + tabLabelPlural + ".";
     };
     /**
      * @param {?} value
@@ -52198,8 +52210,9 @@ RemoteDataTableService = /** @class */ (function () {
  * @suppress {checkTypes,extraRequire,missingReturn,unusedPrivateMembers,uselessCode} checked by tsc
  */
 var NovoTabbedGroupPickerElement = /** @class */ (function () {
-    function NovoTabbedGroupPickerElement() {
+    function NovoTabbedGroupPickerElement(labelService) {
         var _this = this;
+        this.labelService = labelService;
         this.selectionChange = new _angular_core__WEBPACK_IMPORTED_MODULE_26__["EventEmitter"]();
         this.filterText = new rxjs__WEBPACK_IMPORTED_MODULE_18__["BehaviorSubject"]('');
         this.searchLabel = 'Search';
@@ -52212,14 +52225,11 @@ var NovoTabbedGroupPickerElement = /** @class */ (function () {
             }, {});
         };
         this.filter = function (searchTerm) {
-            _this.displayData = Object.keys(_this.data).reduce(function (accumulator, schema) {
-                var _a;
-                var labelField = _this.schemata.find(function (_a) {
-                    var typeName = _a.typeName;
-                    return typeName === schema;
-                }).labelField;
-                return Object(tslib__WEBPACK_IMPORTED_MODULE_25__["__assign"])({}, accumulator, (_a = {}, _a[schema] = _this.data[schema].filter(function (item) { return item[labelField].toLowerCase().includes(searchTerm.toLowerCase()); }), _a));
-            }, {});
+            return (_this.displayData = _this.schemata.reduce(function (accumulator, _a) {
+                var labelField = _a.labelField, typeName = _a.typeName;
+                var _b;
+                return (Object(tslib__WEBPACK_IMPORTED_MODULE_25__["__assign"])({}, accumulator, (_b = {}, _b[typeName] = _this.data[typeName] && _this.data[typeName].filter(function (item) { return item[labelField].toLowerCase().includes(searchTerm.toLowerCase()); }), _b)));
+            }, {}));
         };
     }
     /**
@@ -52445,15 +52455,6 @@ var NovoTabbedGroupPickerElement = /** @class */ (function () {
         this.selectionChange.emit(this.getSelectedValues());
     };
     /**
-     * @return {?}
-     */
-    NovoTabbedGroupPickerElement.prototype.clearFilter = /**
-     * @return {?}
-     */
-    function () {
-        this.filterText.next('');
-    };
-    /**
      * @param {?} event
      * @return {?}
      */
@@ -52463,27 +52464,29 @@ var NovoTabbedGroupPickerElement = /** @class */ (function () {
      */
     function (event) {
         Helpers.swallowEvent(event); // dunno if this is necessary
-        this.clearFilter();
+        this.filterText.next('');
     };
     /**
-     * @param {?} textInput
+     * @param {?} event
      * @return {?}
      */
     NovoTabbedGroupPickerElement.prototype.onFilter = /**
-     * @param {?} textInput
+     * @param {?} event
      * @return {?}
      */
-    function (textInput) {
-        this.filterText.next(textInput);
+    function (event) {
+        this.filterText.next(event.target.value);
     };
     NovoTabbedGroupPickerElement.decorators = [
         { type: _angular_core__WEBPACK_IMPORTED_MODULE_26__["Component"], args: [{
                     selector: 'novo-tabbed-group-picker',
-                    template: "<novo-dropdown>\n  <button class=\"tabbed-group-picker-button\"\n          [theme]=\"buttonConfig.theme\"\n          [side]=\"buttonConfig.side\"\n          [icon]=\"buttonConfig.icon\"\n          [loading]=\"loading\">\n    <div class=\"tabbed-group-picker-button-label\">{{ buttonConfig.label }}</div>\n  </button>\n  <div class=\"novo-category-dropdown-search\" data-automation-id=\"novo-category-dropdown-search\">\n    <input type=\"text\" [placeholder]=\"searchLabel\" [value]=\"filterText | async\" (input)=\"onFilter($event.target.value)\" />\n    <i class=\"bhi-search\" *ngIf=\"!(filterText | async)\"></i>\n    <i class=\"bhi-times\" *ngIf=\"filterText | async\" (click)=\"onClearFilter($event)\"></i>\n  </div>\n  <div class=\"tabbed-group-picker-column-container\">\n    <div class=\"tabbed-group-picker-column left\">\n      <novo-nav theme=\"white\"\n                direction=\"vertical\">\n        <novo-tab *ngFor=\"let schema of schemata\"\n                  [attr.data-automation-id]=\"schema.typeName\"\n                  (activeChange)=\"setActiveSchema(schema)\">\n          <span>{{schema.typeLabel}} ({{displayData[schema.typeName].length}})</span><i class=\"bhi-next\"></i>\n        </novo-tab>\n      </novo-nav>\n      <!-- todo: clear all button goes here-->\n    </div>\n    <div class=\"tabbed-group-picker-column right\">\n      <div class=\"quick-select\" *ngIf=\"quickSelectConfig && !(filterText | async)\">\n        <div class=\"quick-select-label\">{{ quickSelectConfig.label }}</div>\n        <novo-list direction=\"vertical\">\n          <novo-list-item *ngFor=\"let quickSelect of quickSelectConfig.items\"\n                          [attr.data-automation-id]=\"quickSelect.label\"\n                          (click)=\"onQuickSelectListItemClicked(quickSelect)\">\n            <item-content>\n              <novo-checkbox [label]=\"quickSelect.label\"\n                             [name]=\"'active'\"\n                             [(ngModel)]=\"quickSelect.active\"\n                             (ngModelChange)=\"onQuickSelectToggled(quickSelect)\"></novo-checkbox>\n            </item-content>\n          </novo-list-item>\n        </novo-list>\n      </div>\n      <!-- todo: add virtual scroll-->\n      <novo-list *ngIf=\"displayData[activeSchema.typeName].length\"\n                 direction=\"vertical\">\n        <novo-list-item *ngFor=\"let item of displayData[activeSchema.typeName]\"\n                        [attr.data-automation-id]=\"item[activeSchema.labelField]\"\n                        (click)=\"onDataListItemClicked(activeSchema, item);\">\n          <item-content>\n            <novo-checkbox [label]=\"item[activeSchema.labelField]\"\n                           [name]=\"'selected'\"\n                           [(ngModel)]=\"item.selected\"\n                           (ngModelChange)=\"onItemToggled(activeSchema)\"></novo-checkbox>\n          </item-content>\n        </novo-list-item>\n      </novo-list>\n      <!-- TODO: add empty result message for no data in the case of no search -->\n      <div class=\"novo-category-dropdown-empty-item\" *ngIf=\"!displayData[activeSchema.typeName].length && (filterText | async)\">\n        <!-- TODO: add bhi-users icon if parent-child relationship-->\n        <i class=\"bhi-user\"></i>\n        <div class=\"empty-item-main-message\">{{ 'NO RESULTS PLS TRANSLATE' }}</div>\n        <div class=\"empty-item-sub-message\">{{ 'CLEAR SAERCH PLS TRANSLATE' }}</div>\n      </div>\n    </div>\n  </div>\n</novo-dropdown>\n"
+                    template: "<novo-dropdown>\n  <button class=\"tabbed-group-picker-button\"\n          [theme]=\"buttonConfig.theme\"\n          [side]=\"buttonConfig.side\"\n          [icon]=\"buttonConfig.icon\"\n          [loading]=\"loading\">\n    <div class=\"tabbed-group-picker-button-label\">{{ buttonConfig.label }}</div>\n  </button>\n  <div class=\"novo-category-dropdown-search\" data-automation-id=\"novo-category-dropdown-search\">\n    <input type=\"text\" [placeholder]=\"searchLabel\" [value]=\"filterText | async\" (input)=\"onFilter($event)\" />\n    <i class=\"bhi-search\" *ngIf=\"!(filterText | async)\"></i>\n    <i class=\"bhi-times\" *ngIf=\"filterText | async\" (click)=\"onClearFilter($event)\"></i>\n  </div>\n  <div class=\"tabbed-group-picker-column-container\">\n    <div class=\"tabbed-group-picker-column left\">\n      <novo-nav theme=\"white\"\n                direction=\"vertical\">\n        <novo-tab *ngFor=\"let schema of schemata\"\n                  [attr.data-automation-id]=\"schema.typeName\"\n                  (activeChange)=\"setActiveSchema(schema)\">\n          <span>{{schema.typeLabel}} ({{displayData[schema.typeName].length}})</span><i class=\"bhi-next\"></i>\n        </novo-tab>\n      </novo-nav>\n      <!-- todo: clear all button goes here-->\n    </div>\n    <div class=\"tabbed-group-picker-column right\">\n      <div class=\"quick-select\" *ngIf=\"quickSelectConfig && !(filterText | async)\">\n        <div class=\"quick-select-label\">{{ quickSelectConfig.label }}</div>\n        <novo-list direction=\"vertical\">\n          <novo-list-item *ngFor=\"let quickSelect of quickSelectConfig.items\"\n                          [attr.data-automation-id]=\"quickSelect.label\"\n                          (click)=\"onQuickSelectListItemClicked(quickSelect)\">\n            <item-content>\n              <novo-checkbox [label]=\"quickSelect.label\"\n                             [name]=\"'active'\"\n                             [(ngModel)]=\"quickSelect.active\"\n                             (ngModelChange)=\"onQuickSelectToggled(quickSelect)\"></novo-checkbox>\n            </item-content>\n          </novo-list-item>\n        </novo-list>\n      </div>\n      <!-- todo: add virtual scroll-->\n      <novo-list *ngIf=\"displayData[activeSchema.typeName].length\"\n                 direction=\"vertical\">\n        <novo-list-item *ngFor=\"let item of displayData[activeSchema.typeName]\"\n                        [attr.data-automation-id]=\"item[activeSchema.labelField]\"\n                        (click)=\"onDataListItemClicked(activeSchema, item);\">\n          <item-content>\n            <novo-checkbox [label]=\"item[activeSchema.labelField]\"\n                           [name]=\"'selected'\"\n                           [(ngModel)]=\"item.selected\"\n                           (ngModelChange)=\"onItemToggled(activeSchema)\"></novo-checkbox>\n          </item-content>\n        </novo-list-item>\n      </novo-list>\n      <!-- TODO: add empty result message for no data in the case of no search -->\n      <div class=\"novo-category-dropdown-empty-item\" *ngIf=\"!displayData[activeSchema.typeName].length && (filterText | async)\">\n        <!-- TODO: add bhi-users icon if parent-child relationship-->\n        <i class=\"bhi-user\"></i>\n        <div class=\"empty-item-main-message\">{{ labelService.tabbedGroupPickerEmpty }}</div>\n        <div class=\"empty-item-sub-message\">{{ labelService.tabbedGroupClearSuggestion(this.activeSchema.typeLabel) }}</div>\n      </div>\n    </div>\n  </div>\n</novo-dropdown>\n"
                 }] }
     ];
     /** @nocollapse */
-    NovoTabbedGroupPickerElement.ctorParameters = function () { return []; };
+    NovoTabbedGroupPickerElement.ctorParameters = function () { return [
+        { type: NovoLabelService }
+    ]; };
     NovoTabbedGroupPickerElement.propDecorators = {
         buttonConfig: [{ type: _angular_core__WEBPACK_IMPORTED_MODULE_26__["Input"] }],
         schemata: [{ type: _angular_core__WEBPACK_IMPORTED_MODULE_26__["Input"] }],
@@ -52504,6 +52507,7 @@ var NovoTabbedGroupPickerModule = /** @class */ (function () {
     NovoTabbedGroupPickerModule.decorators = [
         { type: _angular_core__WEBPACK_IMPORTED_MODULE_26__["NgModule"], args: [{
                     imports: [_angular_common__WEBPACK_IMPORTED_MODULE_27__["CommonModule"], _angular_forms__WEBPACK_IMPORTED_MODULE_24__["FormsModule"], NovoTabModule, NovoListModule, NovoFormExtrasModule, NovoButtonModule, NovoDropdownModule],
+                    providers: [NovoLabelService],
                     declarations: [NovoTabbedGroupPickerElement],
                     exports: [NovoTabbedGroupPickerElement],
                 },] }
